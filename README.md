@@ -100,8 +100,8 @@ This repository represents:
 
 ## Profiles
 
-LeetCode Profile: (Add your link here)
-GitHub Profile: (Add your link here)
+LeetCode Profile: (https://leetcode.com/u/shivansh1121/))
+GitHub Profile: (https://github.com/shivansh987654321)
 
 
 This repository is actively maintained and updated as I continue solving and refining problems.
