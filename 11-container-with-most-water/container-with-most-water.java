@@ -5,8 +5,7 @@ class Solution {
         int maxwater = 0;
 
         while (left < right) {
-            int water = (right - left) * 
-                        Math.min(height[left], height[right]);
+            int water = (right - left) * Math.min(height[left], height[right]);
 
             maxwater = Math.max(maxwater, water);
 
