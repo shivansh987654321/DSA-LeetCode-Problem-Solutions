@@ -1,4 +1,3 @@
-# DSA-LeetCode-Problem-Solutions
 # LeetCode Problem Solving Repository
 
 ## Overview
