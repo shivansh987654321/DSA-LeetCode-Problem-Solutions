@@ -4,12 +4,15 @@ class Solution {
         int right = height.length - 1;
         int maxwater = 0;
 
-        for(int i = 0;i < height.length; i++){
-            int water = (right - left) * (Math.min(height[left] , height[right]));
-            maxwater = Math.max(maxwater , water);
-            if(height[left] < height[right]){
+        while (left < right) {
+            int water = (right - left) * 
+                        Math.min(height[left], height[right]);
+
+            maxwater = Math.max(maxwater, water);
+
+            if (height[left] < height[right]) {
                 left++;
-            }else{
+            } else {
                 right--;
             }
         }
