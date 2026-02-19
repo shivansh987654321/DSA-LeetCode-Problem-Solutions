@@ -8,16 +8,12 @@ class Solution {
             }
             else if(stack.isEmpty()){
                 return false;
-            }else if (s.charAt(i) != ')' && stack.peek() == '(' || s.charAt(i) != ']' && stack.peek() == '[' ||s.charAt(i) != '}' && stack.peek() == '{'){
+            }else if (s.charAt(i) == ')' && stack.peek() != '(' || s.charAt(i) == ']' && stack.peek() != '[' ||s.charAt(i) == '}' && stack.peek() != '{'){
                 return false;
             }else{
                 stack.pop();
             }
         }
-        if(stack.isEmpty()){
-            return true;
-        }else{
-            return false;
-        }
+        return stack.isEmpty();
     }
 }
