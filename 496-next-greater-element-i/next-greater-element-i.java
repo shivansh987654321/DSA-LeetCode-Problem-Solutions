@@ -3,10 +3,10 @@ class Solution {
         int n = nums1.length;
         int m = nums2.length;
         int [] ans = new int[n];
-        HashMap<Integer , Integer > map = new HashMap<>();
         Stack<Integer> stack = new Stack<>();
+        HashMap<Integer , Integer > map = new HashMap<>();
 
-        for(int i = m -1; i>=0 ;i--){
+        for(int i = m-1; i >=0 ;i--){
             while(!stack.isEmpty() && nums2[i] >= stack.peek()){
                 stack.pop();
             }
