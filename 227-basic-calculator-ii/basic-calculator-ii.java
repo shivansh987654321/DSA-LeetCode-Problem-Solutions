@@ -1,46 +1,33 @@
-import java.util.*;
-
 class Solution {
     public int calculate(String s) {
-        Stack<Integer> stack = new Stack<>();
-        int currentNumber = 0;
-        char previousOperator = '+';
+        Stack<Integer> st = new Stack<>();
+        int cn = 0;
+        char po = '+';
         int n = s.length();
-
-        for (int i = 0; i < n; i++) {
+        for(int i = 0;i < n; i++){
             char ch = s.charAt(i);
-
-            // Build the current number
-            if (Character.isDigit(ch)) {
-                currentNumber = currentNumber * 10 + (ch - '0');
+        
+            if(Character.isDigit(ch)){
+                cn = cn * 10 + (ch - '0');
             }
-
-            // If operator OR end of string → process
-            if ((!Character.isDigit(ch) && ch != ' ') || i == n - 1) {
-
-                if (previousOperator == '+') {
-                    stack.push(currentNumber);
-                } 
-                else if (previousOperator == '-') {
-                    stack.push(-currentNumber);
-                } 
-                else if (previousOperator == '*') {
-                    stack.push(stack.pop() * currentNumber);
-                } 
-                else if (previousOperator == '/') {
-                    stack.push(stack.pop() / currentNumber);
+            if(!Character.isDigit(ch) && ch != ' ' || i == n-1){
+                if(po == '+'){
+                    st.push(cn);
+                }if(po == '-'){
+                    st.push(-cn);
+                }if(po == '*'){
+                    st.push(st.pop() * cn);
+                }if(po == '/'){
+                    st.push(st.pop() / cn);
                 }
-
-                previousOperator = ch;
-                currentNumber = 0;
+                po = ch;
+                cn = 0;
             }
         }
-
         int result = 0;
-        while (!stack.isEmpty()) {
-            result += stack.pop();
+        while(!st.isEmpty()){
+            result = result + st.pop();
         }
-
         return result;
     }
 }
