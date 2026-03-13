@@ -7,8 +7,7 @@ class Solution {
             if(mid % 2 == 0){
                 if(nums[mid] == nums[mid + 1]){
                     left = mid + 2;
-                }
-                else{
+                }else{
                     right = mid;
                 }
             }else{
@@ -20,6 +19,5 @@ class Solution {
             }
         }
         return nums[left];
-        
     }
 }
