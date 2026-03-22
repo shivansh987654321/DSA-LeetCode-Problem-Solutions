@@ -7,7 +7,7 @@ class Solution {
         }
         while(minspeed < maxspeed){
             int mid = minspeed + (maxspeed - minspeed) / 2;
-            if(caneat(piles , h , mid)){
+            if((CanEat(piles , h , mid))){
                 maxspeed = mid;
             }else{
                 minspeed = mid + 1;
@@ -15,11 +15,11 @@ class Solution {
         }
         return minspeed;
     }
-    private boolean caneat(int[] piles, int h, int speed){
+    private boolean CanEat(int [] piles ,int h ,int speed){
         int hours = 0;
         for(int pile : piles){
-            hours = hours + (int)Math.ceil((double) pile / speed);
+            hours = hours + (int) Math.ceil((double) pile/speed);
         }
-        return hours <= h;
+        return (hours <= h);
     }
 }
