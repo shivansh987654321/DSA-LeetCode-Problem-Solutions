@@ -1,13 +1,11 @@
 class Solution {
     public int fib(int n) {
-        if (n <= 1){
-            return n;
-        }
-        int last = fib(n - 1);
-        int slast = fib(n - 2);
+        if(n == 0) return 0;
+        if(n == 1) return 1;
 
-        return last + slast;
+        int pre = fib(n-1);
+        int nex = fib(n-2);
 
-        
+        return (pre + nex);
     }
 }
