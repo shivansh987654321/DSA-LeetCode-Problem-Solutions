@@ -1,25 +1,21 @@
 class Solution {
     public List<List<Integer>> subsets(int[] nums) {
-        List<List<Integer>> ans = new ArrayList<>();
-        List<Integer> ans1 = new ArrayList<>();
-        sub(ans, ans1, nums, 0);
-        return ans;
+        List<List<Integer>> arr = new ArrayList<>();
+        List<Integer> ans = new ArrayList<>();
+        //return arr;
+        rec(nums , arr , ans , 0);
+        return arr;
     }
-
-    private void sub(List<List<Integer>> ans, List<Integer> ans1, int[] nums, int i) {
-        if (i == nums.length) {
-            ans.add(new ArrayList<>(ans1));
-            return;
+    private List<List<Integer>> rec(int[] nums , List<List<Integer>> arr ,List<Integer> ans , int i){
+        if(i == nums.length){
+            arr.add(new ArrayList<>(ans));
+            return arr;
         }
-
-        // not pick
-        sub(ans, ans1, nums, i + 1);
-
-        // pick
-        ans1.add(nums[i]);
-        sub(ans, ans1, nums, i + 1);
-
-        // backtrack
-        ans1.remove(ans1.size() - 1);
+        
+        rec(nums , arr , ans, i + 1);
+        ans.add(nums[i]);
+        rec(nums , arr , ans, i + 1);
+        ans.remove(ans.size() - 1);
+        return arr;
     }
 }
