@@ -6,16 +6,15 @@ class Solution {
         rec(nums , arr , ans , 0);
         return arr;
     }
-    private List<List<Integer>> rec(int[] nums , List<List<Integer>> arr ,List<Integer> ans , int i){
+    private void rec(int[] nums , List<List<Integer>> arr ,List<Integer> ans , int i){
         if(i == nums.length){
             arr.add(new ArrayList<>(ans));
-            return arr;
+            return;
         }
         
         rec(nums , arr , ans, i + 1);
         ans.add(nums[i]);
         rec(nums , arr , ans, i + 1);
         ans.remove(ans.size() - 1);
-        return arr;
     }
 }
