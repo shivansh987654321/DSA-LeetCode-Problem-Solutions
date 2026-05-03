@@ -13,15 +13,15 @@ class Solution {
                 count--;
             }
         }
-        int temp = 0;
-        for(int i = 0; i < n; i++){
-            if(nums[i] == ele){
-                temp++;
-            }
-        }
-        if(temp > n/2){
-            return ele;
-        }
-        return -1;
+        // int temp = 0;
+        // for(int i = 0; i < n; i++){
+        //     if(nums[i] == ele){
+        //         temp++;
+        //     }
+        // }
+        // if(temp > n/2){
+        //     return ele;
+        //}
+        return ele;
     }
 }
