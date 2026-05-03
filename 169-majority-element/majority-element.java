@@ -22,6 +22,6 @@ class Solution {
         if(temp > n/2){
             return ele;
         }
-        return ele;
+        return -1;
     }
 }
