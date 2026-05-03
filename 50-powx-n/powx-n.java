@@ -14,7 +14,7 @@ class Solution {
         while(N > 0){
             if(N % 2 == 1){
                 ans = ans * x;
-                N = N - 1;
+                
             }
             x = x * x;
             N = N / 2;
