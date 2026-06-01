@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMS — Medical Records</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><h2><i class="bi bi-hospital"></i> HMS</h2><small>Hospital Management</small></div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto;">
+      <a class="nav-item" id="logoutBtn" style="color:#f87171;"><i class="bi bi-box-arrow-left"></i> Logout</a>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h3>Medical Records</h3>
+      <div class="topbar-right">
+        <div class="user-badge">
+          <div class="user-avatar" id="topbarAvatar">A</div>
+          <div><div style="font-size:0.85rem;font-weight:600;" id="topbarUser">User</div>
+          <div class="role-chip" id="topbarRole">role</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="page-header">
+        <h2>Medical Records</h2>
+        <button class="btn btn-primary" id="addRecordBtn"><i class="bi bi-plus-lg"></i> Add Record</button>
+      </div>
+
+      <!-- Patient filter (non-patient roles) -->
+      <div id="patientFilterRow" class="card" style="margin-bottom:16px;">
+        <div class="card-body" style="display:flex;gap:12px;padding:14px 16px;align-items:flex-end;">
+          <div style="flex:1;max-width:300px;">
+            <label class="form-label">Filter by Patient</label>
+            <select class="form-control" id="filterPatient"><option value="">All Patients</option></select>
+          </div>
+          <button class="btn btn-secondary" id="clearPatientFilter"><i class="bi bi-x-circle"></i> Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <table class="table">
+            <thead>
+              <tr><th>#</th><th>Patient</th><th>Doctor</th><th>Diagnosis</th><th>Prescription</th><th>Date</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="recordsTable">
+              <tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Record Modal -->
+<div class="modal-overlay" id="recordModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4 id="recordModalTitle">Add Medical Record</h4>
+      <button class="modal-close" id="closeRecordModal">&times;</button>
+    </div>
+    <input type="hidden" id="editRecordId" />
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Patient *</label>
+        <select class="form-control" id="recPatient"><option value="">Select Patient…</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Doctor *</label>
+        <select class="form-control" id="recDoctor"><option value="">Select Doctor…</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Diagnosis</label>
+      <textarea class="form-control" id="recDiagnosis" rows="3" placeholder="Diagnosis details…" style="resize:vertical;"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prescription</label>
+      <textarea class="form-control" id="recPrescription" rows="3" placeholder="Medications and instructions…" style="resize:vertical;"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-control" id="recDate" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelRecordModal">Cancel</button>
+      <button class="btn btn-primary" id="saveRecord">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4>Medical Record Details</h4>
+      <button class="modal-close" onclick="document.getElementById('viewModal').classList.remove('show')">&times;</button>
+    </div>
+    <div id="viewContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('viewModal').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+  let currentUser = initPage('records', ['admin', 'doctor', 'patient']);
+  const urlParams = new URLSearchParams(window.location.search);
+  const presetPatientId = urlParams.get('patient_id');
+
+  if (currentUser) {
+    if (currentUser.role === 'patient') {
+      document.getElementById('patientFilterRow').style.display = 'none';
+      document.getElementById('addRecordBtn').style.display = 'none';
+    } else {
+      populatePatientSelect();
+      populateDoctorSelect();
+    }
+    loadRecords();
+  }
+
+  async function loadRecords(patientId = null) {
+    const pid = patientId || presetPatientId;
+    const ep = pid ? `/records?patient_id=${pid}` : '/records';
+    const res = await api.get(ep);
+    const tbody = document.getElementById('recordsTable');
+    if (!res || !res.ok) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Failed to load</td></tr>'; return; }
+
+    const records = res.data;
+    if (!records.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">No records found</td></tr>';
+      return;
+    }
+
+    const canEdit = ['admin', 'doctor'].includes(currentUser.role);
+    tbody.innerHTML = records.map(r => `
+      <tr>
+        <td>${r.record_id}</td>
+        <td>${r.patient_name}</td>
+        <td>${r.doctor_name}</td>
+        <td>${(r.diagnosis || '').substring(0, 40)}${r.diagnosis && r.diagnosis.length > 40 ? '…' : ''}</td>
+        <td>${(r.prescription || '').substring(0, 40)}${r.prescription && r.prescription.length > 40 ? '…' : ''}</td>
+        <td>${r.date}</td>
+        <td>
+          <button class="btn btn-primary btn-sm btn-icon" onclick="viewRecord(${JSON.stringify(r).replace(/"/g,'&quot;')})"><i class="bi bi-eye"></i></button>
+          ${canEdit ? `<button class="btn btn-secondary btn-sm btn-icon" onclick="editRecord(${r.record_id})"><i class="bi bi-pencil"></i></button>` : ''}
+          ${currentUser.role === 'admin' ? `<button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord(${r.record_id})"><i class="bi bi-trash"></i></button>` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  async function populatePatientSelect() {
+    const res = await api.get('/patients');
+    if (!res || !res.ok) return;
+    const opts = res.data.map(p => `<option value="${p.patient_id}">${p.name}</option>`).join('');
+    document.getElementById('filterPatient').innerHTML = '<option value="">All Patients</option>' + opts;
+    document.getElementById('recPatient').innerHTML = '<option value="">Select Patient…</option>' + opts;
+    if (presetPatientId) {
+      document.getElementById('filterPatient').value = presetPatientId;
+    }
+  }
+
+  async function populateDoctorSelect() {
+    const res = await api.get('/doctors');
+    if (!res || !res.ok) return;
+    document.getElementById('recDoctor').innerHTML =
+      '<option value="">Select Doctor…</option>' +
+      res.data.map(d => `<option value="${d.doctor_id}">${d.name}</option>`).join('');
+  }
+
+  document.getElementById('filterPatient')?.addEventListener('change', e => {
+    loadRecords(e.target.value || null);
+  });
+
+  document.getElementById('clearPatientFilter')?.addEventListener('click', () => {
+    document.getElementById('filterPatient').value = '';
+    loadRecords();
+  });
+
+  const modal = document.getElementById('recordModal');
+  document.getElementById('addRecordBtn').addEventListener('click', () => {
+    document.getElementById('recordModalTitle').textContent = 'Add Medical Record';
+    document.getElementById('editRecordId').value = '';
+    document.getElementById('recPatient').value = '';
+    document.getElementById('recDoctor').value = '';
+    document.getElementById('recDiagnosis').value = '';
+    document.getElementById('recPrescription').value = '';
+    document.getElementById('recDate').value = new Date().toISOString().split('T')[0];
+    modal.classList.add('show');
+  });
+
+  document.getElementById('closeRecordModal').addEventListener('click', () => modal.classList.remove('show'));
+  document.getElementById('cancelRecordModal').addEventListener('click', () => modal.classList.remove('show'));
+
+  async function editRecord(id) {
+    const res = await api.get(`/records?patient_id=0`);
+    // Fetch all and find by id
+    const allRes = await api.get('/records');
+    if (!allRes || !allRes.ok) return;
+    const r = allRes.data.find(x => x.record_id === id);
+    if (!r) return;
+    document.getElementById('recordModalTitle').textContent = 'Edit Record';
+    document.getElementById('editRecordId').value = r.record_id;
+    document.getElementById('recPatient').value = r.patient_id;
+    document.getElementById('recDoctor').value = r.doctor_id;
+    document.getElementById('recDiagnosis').value = r.diagnosis || '';
+    document.getElementById('recPrescription').value = r.prescription || '';
+    document.getElementById('recDate').value = r.date || '';
+    modal.classList.add('show');
+  }
+
+  document.getElementById('saveRecord').addEventListener('click', async () => {
+    const patient_id = document.getElementById('recPatient').value;
+    const doctor_id  = document.getElementById('recDoctor').value;
+    if (!patient_id || !doctor_id) { showToast('Patient and Doctor required', 'error'); return; }
+
+    const body = {
+      patient_id: parseInt(patient_id),
+      doctor_id: parseInt(doctor_id),
+      diagnosis: document.getElementById('recDiagnosis').value,
+      prescription: document.getElementById('recPrescription').value,
+      date: document.getElementById('recDate').value,
+    };
+
+    const editId = document.getElementById('editRecordId').value;
+    const res = editId ? await api.put(`/records/${editId}`, body) : await api.post('/records', body);
+    if (res && res.ok) {
+      showToast(editId ? 'Record updated' : 'Record added', 'success');
+      modal.classList.remove('show');
+      loadRecords();
+    } else showToast((res && res.data && res.data.error) || 'Save failed', 'error');
+  });
+
+  async function deleteRecord(id) {
+    if (!confirm('Delete this record?')) return;
+    const res = await api.del(`/records/${id}`);
+    if (res && res.ok) { showToast('Record deleted', 'success'); loadRecords(); }
+    else showToast('Delete failed', 'error');
+  }
+
+  function viewRecord(r) {
+    document.getElementById('viewContent').innerHTML = `
+      <table style="width:100%;font-size:0.9rem;">
+        <tr><td style="padding:8px;color:#666;width:130px;">Record #</td><td><strong>${r.record_id}</strong></td></tr>
+        <tr><td style="padding:8px;color:#666;">Patient</td><td>${r.patient_name}</td></tr>
+        <tr><td style="padding:8px;color:#666;">Doctor</td><td>${r.doctor_name}</td></tr>
+        <tr><td style="padding:8px;color:#666;">Date</td><td>${r.date}</td></tr>
+        <tr><td style="padding:8px;color:#666;vertical-align:top;">Diagnosis</td><td style="white-space:pre-wrap;">${r.diagnosis || '—'}</td></tr>
+        <tr><td style="padding:8px;color:#666;vertical-align:top;">Prescription</td><td style="white-space:pre-wrap;">${r.prescription || '—'}</td></tr>
+      </table>`;
+    document.getElementById('viewModal').classList.add('show');
+  }
+</script>
+</body>
+</html>

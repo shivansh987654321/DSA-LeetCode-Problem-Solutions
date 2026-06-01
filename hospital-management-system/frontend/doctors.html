@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMS — Doctors</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><h2><i class="bi bi-hospital"></i> HMS</h2><small>Hospital Management</small></div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto;">
+      <a class="nav-item" id="logoutBtn" style="color:#f87171;"><i class="bi bi-box-arrow-left"></i> Logout</a>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h3>Doctors</h3>
+      <div class="topbar-right">
+        <div class="user-badge">
+          <div class="user-avatar" id="topbarAvatar">A</div>
+          <div><div style="font-size:0.85rem;font-weight:600;" id="topbarUser">User</div>
+          <div class="role-chip" id="topbarRole">role</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="page-header">
+        <h2>Doctors &amp; Departments</h2>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-secondary" id="addDeptBtn"><i class="bi bi-building"></i> Add Department</button>
+          <button class="btn btn-primary" id="addDoctorBtn"><i class="bi bi-plus-lg"></i> Add Doctor</button>
+        </div>
+      </div>
+
+      <!-- Departments -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><h5><i class="bi bi-building"></i> Departments</h5></div>
+        <div class="card-body" style="padding:0;">
+          <table class="table">
+            <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Actions</th></tr></thead>
+            <tbody id="deptTable"><tr><td colspan="4" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Doctors -->
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="bi bi-person-badge"></i> Doctors</h5>
+          <div class="search-bar">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search doctors…" />
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="table">
+            <thead><tr><th>ID</th><th>Name</th><th>Specialization</th><th>Department</th><th>Phone</th><th>Actions</th></tr></thead>
+            <tbody id="doctorTable"><tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Doctor Modal -->
+<div class="modal-overlay" id="doctorModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4 id="doctorModalTitle">Add Doctor</h4>
+      <button class="modal-close" id="closeDoctorModal">&times;</button>
+    </div>
+    <input type="hidden" id="editDoctorId" />
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" class="form-control" id="dName" placeholder="Dr. Full Name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Specialization</label>
+        <input type="text" class="form-control" id="dSpec" placeholder="e.g. Cardiologist" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="tel" class="form-control" id="dPhone" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department</label>
+        <select class="form-control" id="dDept"><option value="">Select Department…</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('doctorModal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-primary" id="saveDoctor">Save Doctor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Department Modal -->
+<div class="modal-overlay" id="deptModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4>Add Department</h4>
+      <button class="modal-close" onclick="document.getElementById('deptModal').classList.remove('show')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Department Name *</label>
+      <input type="text" class="form-control" id="deptName" placeholder="e.g. Cardiology" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location</label>
+      <input type="text" class="form-control" id="deptLocation" placeholder="e.g. Block A" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('deptModal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-primary" id="saveDept">Save Department</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+  let departments = [];
+  const user = initPage('doctors', ['admin']);
+  if (user) { loadDepartments(); loadDoctors(); setupSearch(); }
+
+  async function loadDepartments() {
+    const res = await api.get('/departments');
+    if (!res || !res.ok) return;
+    departments = res.data;
+    const tbody = document.getElementById('deptTable');
+    tbody.innerHTML = departments.map(d => `
+      <tr>
+        <td>${d.department_id}</td>
+        <td>${d.dept_name}</td>
+        <td>${d.location || '—'}</td>
+        <td><button class="btn btn-danger btn-sm btn-icon" onclick="deleteDept(${d.department_id})"><i class="bi bi-trash"></i></button></td>
+      </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;padding:20px;color:#888;">No departments</td></tr>';
+
+    const sel = document.getElementById('dDept');
+    sel.innerHTML = '<option value="">Select Department…</option>' + departments.map(d => `<option value="${d.department_id}">${d.dept_name}</option>`).join('');
+  }
+
+  async function loadDoctors(search = '') {
+    const ep = '/doctors' + (search ? `?search=${encodeURIComponent(search)}` : '');
+    const res = await api.get(ep);
+    const tbody = document.getElementById('doctorTable');
+    if (!res || !res.ok) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Failed to load</td></tr>'; return; }
+    const docs = res.data;
+    tbody.innerHTML = docs.map(d => `
+      <tr>
+        <td>${d.doctor_id}</td>
+        <td><strong>${d.name}</strong></td>
+        <td>${d.specialization || '—'}</td>
+        <td>${d.department_name || '—'}</td>
+        <td>${d.phone || '—'}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editDoctor(${d.doctor_id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteDoctor(${d.doctor_id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">No doctors found</td></tr>';
+  }
+
+  function setupSearch() {
+    let timer;
+    document.getElementById('searchInput').addEventListener('input', e => {
+      clearTimeout(timer);
+      timer = setTimeout(() => loadDoctors(e.target.value.trim()), 400);
+    });
+  }
+
+  document.getElementById('addDoctorBtn').addEventListener('click', () => {
+    document.getElementById('doctorModalTitle').textContent = 'Add Doctor';
+    document.getElementById('editDoctorId').value = '';
+    ['dName','dSpec','dPhone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('dDept').value = '';
+    document.getElementById('doctorModal').classList.add('show');
+  });
+
+  document.getElementById('closeDoctorModal').addEventListener('click', () => document.getElementById('doctorModal').classList.remove('show'));
+
+  async function editDoctor(id) {
+    const res = await api.get(`/doctors/${id}`);
+    if (!res || !res.ok) return;
+    const d = res.data;
+    document.getElementById('doctorModalTitle').textContent = 'Edit Doctor';
+    document.getElementById('editDoctorId').value = d.doctor_id;
+    document.getElementById('dName').value = d.name || '';
+    document.getElementById('dSpec').value = d.specialization || '';
+    document.getElementById('dPhone').value = d.phone || '';
+    document.getElementById('dDept').value = d.department_id || '';
+    document.getElementById('doctorModal').classList.add('show');
+  }
+
+  document.getElementById('saveDoctor').addEventListener('click', async () => {
+    const name = document.getElementById('dName').value.trim();
+    if (!name) { showToast('Doctor name required', 'error'); return; }
+    const body = {
+      name,
+      specialization: document.getElementById('dSpec').value.trim(),
+      phone: document.getElementById('dPhone').value.trim(),
+      department_id: document.getElementById('dDept').value || null,
+    };
+    const editId = document.getElementById('editDoctorId').value;
+    const res = editId ? await api.put(`/doctors/${editId}`, body) : await api.post('/doctors', body);
+    if (res && res.ok) {
+      showToast(editId ? 'Doctor updated' : 'Doctor added', 'success');
+      document.getElementById('doctorModal').classList.remove('show');
+      loadDoctors();
+    } else showToast((res && res.data && res.data.error) || 'Save failed', 'error');
+  });
+
+  async function deleteDoctor(id) {
+    if (!confirm('Delete this doctor?')) return;
+    const res = await api.del(`/doctors/${id}`);
+    if (res && res.ok) { showToast('Doctor deleted', 'success'); loadDoctors(); }
+    else showToast('Delete failed', 'error');
+  }
+
+  document.getElementById('addDeptBtn').addEventListener('click', () => {
+    document.getElementById('deptName').value = '';
+    document.getElementById('deptLocation').value = '';
+    document.getElementById('deptModal').classList.add('show');
+  });
+
+  document.getElementById('saveDept').addEventListener('click', async () => {
+    const name = document.getElementById('deptName').value.trim();
+    if (!name) { showToast('Department name required', 'error'); return; }
+    const res = await api.post('/departments', { dept_name: name, location: document.getElementById('deptLocation').value.trim() });
+    if (res && res.ok) {
+      showToast('Department created', 'success');
+      document.getElementById('deptModal').classList.remove('show');
+      loadDepartments();
+    } else showToast((res && res.data && res.data.error) || 'Failed', 'error');
+  });
+
+  async function deleteDept(id) {
+    if (!confirm('Delete this department?')) return;
+    const res = await api.del(`/departments/${id}`);
+    if (res && res.ok) { showToast('Deleted', 'success'); loadDepartments(); }
+    else showToast('Delete failed', 'error');
+  }
+</script>
+</body>
+</html>

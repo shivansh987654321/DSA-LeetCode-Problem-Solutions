@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMS — Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><h2><i class="bi bi-hospital"></i> HMS</h2><small>Hospital Management</small></div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto;">
+      <a class="nav-item" id="logoutBtn" style="color:#f87171;"><i class="bi bi-box-arrow-left"></i> Logout</a>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h3>Admin Panel</h3>
+      <div class="topbar-right">
+        <div class="user-badge">
+          <div class="user-avatar" id="topbarAvatar">A</div>
+          <div><div style="font-size:0.85rem;font-weight:600;" id="topbarUser">User</div>
+          <div class="role-chip" id="topbarRole">role</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="page-header">
+        <h2>System Administration</h2>
+        <button class="btn btn-primary" id="addUserBtn"><i class="bi bi-plus-lg"></i> Add User</button>
+      </div>
+
+      <!-- Quick links -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
+        <a href="/patients.html" class="card" style="padding:20px;text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <i class="bi bi-people-fill" style="font-size:1.8rem;color:#1a73e8;"></i>
+          <div><div style="font-weight:600;">Patients</div><div style="font-size:0.8rem;color:#666;">Manage registry</div></div>
+        </a>
+        <a href="/doctors.html" class="card" style="padding:20px;text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <i class="bi bi-person-badge-fill" style="font-size:1.8rem;color:#34a853;"></i>
+          <div><div style="font-weight:600;">Doctors</div><div style="font-size:0.8rem;color:#666;">Manage doctors &amp; depts</div></div>
+        </a>
+        <a href="/appointments.html" class="card" style="padding:20px;text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <i class="bi bi-calendar-check-fill" style="font-size:1.8rem;color:#ff6d00;"></i>
+          <div><div style="font-weight:600;">Appointments</div><div style="font-size:0.8rem;color:#666;">View &amp; manage</div></div>
+        </a>
+        <a href="/billing.html" class="card" style="padding:20px;text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <i class="bi bi-receipt-cutoff" style="font-size:1.8rem;color:#7c3aed;"></i>
+          <div><div style="font-weight:600;">Billing</div><div style="font-size:0.8rem;color:#666;">Financial records</div></div>
+        </a>
+      </div>
+
+      <!-- User management -->
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="bi bi-shield-lock"></i> User Accounts</h5>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="table">
+            <thead>
+              <tr><th>ID</th><th>Username</th><th>Role</th><th>Email</th><th>Patient Link</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="usersTable">
+              <tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4>Add User Account</h4>
+      <button class="modal-close" id="closeUserModal">&times;</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Username *</label>
+        <input type="text" class="form-control" id="uUsername" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input type="password" class="form-control" id="uPassword" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Role *</label>
+        <select class="form-control" id="uRole">
+          <option value="">Select Role…</option>
+          <option>admin</option><option>doctor</option>
+          <option>receptionist</option><option>patient</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" id="uEmail" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link to Patient (optional)</label>
+      <select class="form-control" id="uPatient"><option value="">None</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelUserModal">Cancel</button>
+      <button class="btn btn-primary" id="saveUser">Create User</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+  const user = initPage('admin', ['admin']);
+  if (user) { loadUsers(); loadPatients(); }
+
+  async function loadUsers() {
+    const res = await api.get('/users');
+    const tbody = document.getElementById('usersTable');
+    if (!res || !res.ok) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Failed to load</td></tr>'; return; }
+
+    tbody.innerHTML = res.data.map(u => `
+      <tr>
+        <td>${u.user_id}</td>
+        <td><strong>${u.username}</strong></td>
+        <td><span class="role-chip">${u.role}</span></td>
+        <td>${u.email || '—'}</td>
+        <td>${u.patient_id ? `#${u.patient_id}` : '—'}</td>
+        <td>
+          ${u.username !== 'admin' ? `<button class="btn btn-danger btn-sm btn-icon" onclick="deleteUser(${u.user_id}, '${u.username}')"><i class="bi bi-trash"></i></button>` : '<span style="color:#888;font-size:0.8rem;">Protected</span>'}
+        </td>
+      </tr>`).join('');
+  }
+
+  async function loadPatients() {
+    const res = await api.get('/patients');
+    if (!res || !res.ok) return;
+    document.getElementById('uPatient').innerHTML =
+      '<option value="">None</option>' +
+      res.data.map(p => `<option value="${p.patient_id}">${p.name} (#${p.patient_id})</option>`).join('');
+  }
+
+  const modal = document.getElementById('userModal');
+  document.getElementById('addUserBtn').addEventListener('click', () => {
+    ['uUsername','uPassword','uEmail'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('uRole').value = '';
+    document.getElementById('uPatient').value = '';
+    modal.classList.add('show');
+  });
+
+  document.getElementById('closeUserModal').addEventListener('click', () => modal.classList.remove('show'));
+  document.getElementById('cancelUserModal').addEventListener('click', () => modal.classList.remove('show'));
+
+  document.getElementById('saveUser').addEventListener('click', async () => {
+    const username = document.getElementById('uUsername').value.trim();
+    const password = document.getElementById('uPassword').value;
+    const role     = document.getElementById('uRole').value;
+    if (!username || !password || !role) { showToast('Username, password and role required', 'error'); return; }
+
+    const body = {
+      username, password, role,
+      email: document.getElementById('uEmail').value.trim() || null,
+      patient_id: document.getElementById('uPatient').value || null,
+    };
+
+    const res = await api.post('/register', body);
+    if (res && res.ok) {
+      showToast('User created', 'success');
+      modal.classList.remove('show');
+      loadUsers();
+    } else showToast((res && res.data && res.data.error) || 'Failed', 'error');
+  });
+
+  async function deleteUser(id, username) {
+    if (!confirm(`Delete user "${username}"?`)) return;
+    const res = await api.del(`/users/${id}`);
+    if (res && res.ok) { showToast('User deleted', 'success'); loadUsers(); }
+    else showToast('Delete failed', 'error');
+  }
+</script>
+</body>
+</html>

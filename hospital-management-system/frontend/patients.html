@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMS — Patients</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><h2><i class="bi bi-hospital"></i> HMS</h2><small>Hospital Management</small></div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto;">
+      <a class="nav-item" id="logoutBtn" style="color:#f87171;"><i class="bi bi-box-arrow-left"></i> Logout</a>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h3>Patients</h3>
+      <div class="topbar-right">
+        <div class="user-badge">
+          <div class="user-avatar" id="topbarAvatar">A</div>
+          <div><div style="font-size:0.85rem;font-weight:600;" id="topbarUser">User</div>
+          <div class="role-chip" id="topbarRole">role</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="page-header">
+        <h2>Patient Registry</h2>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="search-bar">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search patients…" />
+          </div>
+          <button class="btn btn-primary" id="addPatientBtn"><i class="bi bi-plus-lg"></i> Add Patient</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Name</th><th>Gender</th><th>DOB</th>
+                <th>Phone</th><th>Blood Group</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="patientTable">
+              <tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Patient Modal -->
+<div class="modal-overlay" id="patientModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4 id="modalTitle">Add Patient</h4>
+      <button class="modal-close" id="closeModal">&times;</button>
+    </div>
+    <input type="hidden" id="editPatientId" />
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" class="form-control" id="pName" placeholder="Patient's full name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gender</label>
+        <select class="form-control" id="pGender">
+          <option value="">Select…</option>
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date of Birth</label>
+        <input type="date" class="form-control" id="pDob" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Blood Group</label>
+        <select class="form-control" id="pBlood">
+          <option value="">Select…</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone</label>
+      <input type="tel" class="form-control" id="pPhone" placeholder="Contact number" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Address</label>
+      <input type="text" class="form-control" id="pAddress" placeholder="Full address" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelModal">Cancel</button>
+      <button class="btn btn-primary" id="savePatient">Save Patient</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+  let currentUser = initPage('patients', ['admin', 'receptionist', 'doctor']);
+  if (currentUser) { loadPatients(); setupSearch(); }
+
+  async function loadPatients(search = '') {
+    const ep = '/patients' + (search ? `?search=${encodeURIComponent(search)}` : '');
+    const res = await api.get(ep);
+    const tbody = document.getElementById('patientTable');
+    if (!res || !res.ok) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:20px;">Failed to load patients</td></tr>'; return; }
+
+    const patients = res.data;
+    if (!patients.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:20px;">No patients found</td></tr>';
+      return;
+    }
+
+    const canEdit = ['admin', 'receptionist'].includes(currentUser.role);
+    tbody.innerHTML = patients.map(p => `
+      <tr>
+        <td>${p.patient_id}</td>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.gender || '—'}</td>
+        <td>${p.dob || '—'}</td>
+        <td>${p.phone || '—'}</td>
+        <td>${p.blood_group ? `<span class="badge badge-danger">${p.blood_group}</span>` : '—'}</td>
+        <td>
+          ${canEdit ? `<button class="btn btn-secondary btn-sm btn-icon" onclick="editPatient(${p.patient_id})"><i class="bi bi-pencil"></i></button>` : ''}
+          ${currentUser.role === 'admin' ? `<button class="btn btn-danger btn-sm btn-icon" onclick="deletePatient(${p.patient_id})"><i class="bi bi-trash"></i></button>` : ''}
+          <a href="/records.html?patient_id=${p.patient_id}" class="btn btn-primary btn-sm btn-icon" title="View Records"><i class="bi bi-file-medical"></i></a>
+        </td>
+      </tr>`).join('');
+  }
+
+  function setupSearch() {
+    let timer;
+    document.getElementById('searchInput').addEventListener('input', e => {
+      clearTimeout(timer);
+      timer = setTimeout(() => loadPatients(e.target.value.trim()), 400);
+    });
+  }
+
+  const modal = document.getElementById('patientModal');
+  document.getElementById('addPatientBtn').addEventListener('click', () => {
+    document.getElementById('modalTitle').textContent = 'Add Patient';
+    document.getElementById('editPatientId').value = '';
+    ['pName','pGender','pDob','pBlood','pPhone','pAddress'].forEach(id => document.getElementById(id).value = '');
+    modal.classList.add('show');
+  });
+
+  document.getElementById('closeModal').addEventListener('click', () => modal.classList.remove('show'));
+  document.getElementById('cancelModal').addEventListener('click', () => modal.classList.remove('show'));
+
+  async function editPatient(id) {
+    const res = await api.get(`/patients/${id}`);
+    if (!res || !res.ok) return;
+    const p = res.data;
+    document.getElementById('modalTitle').textContent = 'Edit Patient';
+    document.getElementById('editPatientId').value = p.patient_id;
+    document.getElementById('pName').value = p.name || '';
+    document.getElementById('pGender').value = p.gender || '';
+    document.getElementById('pDob').value = p.dob || '';
+    document.getElementById('pBlood').value = p.blood_group || '';
+    document.getElementById('pPhone').value = p.phone || '';
+    document.getElementById('pAddress').value = p.address || '';
+    modal.classList.add('show');
+  }
+
+  document.getElementById('savePatient').addEventListener('click', async () => {
+    const name = document.getElementById('pName').value.trim();
+    if (!name) { showToast('Patient name is required', 'error'); return; }
+
+    const body = {
+      name,
+      gender: document.getElementById('pGender').value,
+      dob: document.getElementById('pDob').value,
+      blood_group: document.getElementById('pBlood').value,
+      phone: document.getElementById('pPhone').value.trim(),
+      address: document.getElementById('pAddress').value.trim(),
+    };
+
+    const editId = document.getElementById('editPatientId').value;
+    const res = editId ? await api.put(`/patients/${editId}`, body) : await api.post('/patients', body);
+
+    if (res && res.ok) {
+      showToast(editId ? 'Patient updated' : 'Patient registered', 'success');
+      modal.classList.remove('show');
+      loadPatients();
+    } else {
+      showToast((res && res.data && res.data.error) || 'Save failed', 'error');
+    }
+  });
+
+  async function deletePatient(id) {
+    if (!confirm('Delete this patient? This cannot be undone.')) return;
+    const res = await api.del(`/patients/${id}`);
+    if (res && res.ok) { showToast('Patient deleted', 'success'); loadPatients(); }
+    else showToast('Delete failed', 'error');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMS — Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <h2><i class="bi bi-hospital"></i> HMS</h2>
+      <small>Hospital Management</small>
+    </div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto;">
+      <a class="nav-item" id="logoutBtn" style="color:#f87171;">
+        <i class="bi bi-box-arrow-left"></i> Logout
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main-content">
+    <div class="topbar">
+      <h3 id="pageTitle">Dashboard</h3>
+      <div class="topbar-right">
+        <div class="user-badge">
+          <div class="user-avatar" id="topbarAvatar">A</div>
+          <div>
+            <div style="font-size:0.85rem;font-weight:600;" id="topbarUser">User</div>
+            <div class="role-chip" id="topbarRole">role</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:24px;">
+        <div class="stat-card stat-blue">
+          <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+          <div class="stat-value" id="statPatients">—</div>
+          <div class="stat-label">Total Patients</div>
+        </div>
+        <div class="stat-card stat-green">
+          <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
+          <div class="stat-value" id="statDoctors">—</div>
+          <div class="stat-label">Doctors</div>
+        </div>
+        <div class="stat-card stat-orange">
+          <div class="stat-icon"><i class="bi bi-calendar-check-fill"></i></div>
+          <div class="stat-value" id="statAppointments">—</div>
+          <div class="stat-label">Appointments</div>
+        </div>
+        <div class="stat-card stat-purple">
+          <div class="stat-icon"><i class="bi bi-currency-rupee"></i></div>
+          <div class="stat-value" id="statRevenue">—</div>
+          <div class="stat-label">Revenue (₹)</div>
+        </div>
+        <div class="stat-card stat-red">
+          <div class="stat-icon"><i class="bi bi-x-circle-fill"></i></div>
+          <div class="stat-value" id="statCancelled">—</div>
+          <div class="stat-label">Cancelled</div>
+        </div>
+        <div class="stat-card stat-teal">
+          <div class="stat-icon"><i class="bi bi-receipt-cutoff"></i></div>
+          <div class="stat-value" id="statPendingBills">—</div>
+          <div class="stat-label">Pending Bills</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+        <!-- Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-bar-chart-line"></i> Appointments (Last 7 Days)</h5>
+          </div>
+          <div class="card-body">
+            <canvas id="apptChart" height="140"></canvas>
+          </div>
+        </div>
+
+        <!-- Appointment breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-pie-chart"></i> Status Breakdown</h5>
+          </div>
+          <div class="card-body" style="display:flex;align-items:center;justify-content:center;">
+            <canvas id="statusChart" width="180" height="180"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent appointments -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <h5><i class="bi bi-clock-history"></i> Recent Appointments</h5>
+          <a href="/appointments.html" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentApptTable">
+              <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+  const user = initPage('dashboard');
+  if (user) loadDashboard();
+
+  async function loadDashboard() {
+    const [statsRes, recentRes, chartRes] = await Promise.all([
+      api.get('/dashboard/stats'),
+      api.get('/dashboard/recent-appointments'),
+      api.get('/dashboard/appointment-chart'),
+    ]);
+
+    if (statsRes && statsRes.ok) {
+      const s = statsRes.data;
+      document.getElementById('statPatients').textContent = s.total_patients;
+      document.getElementById('statDoctors').textContent = s.total_doctors;
+      document.getElementById('statAppointments').textContent = s.total_appointments;
+      document.getElementById('statRevenue').textContent = s.total_revenue.toLocaleString();
+      document.getElementById('statCancelled').textContent = s.cancelled_appointments;
+      document.getElementById('statPendingBills').textContent = s.pending_bills;
+
+      // Pie chart
+      new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Scheduled', 'Completed', 'Cancelled'],
+          datasets: [{
+            data: [s.scheduled_appointments, s.completed_appointments, s.cancelled_appointments],
+            backgroundColor: ['#1a73e8', '#34a853', '#ea4335'],
+            borderWidth: 2,
+          }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+      });
+    }
+
+    if (recentRes && recentRes.ok) {
+      const tbody = document.getElementById('recentApptTable');
+      const appts = recentRes.data;
+      if (!appts.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">No appointments yet</td></tr>';
+      } else {
+        tbody.innerHTML = appts.map(a => `
+          <tr>
+            <td>${a.appointment_id}</td>
+            <td>${a.patient_name}</td>
+            <td>${a.doctor_name}</td>
+            <td>${a.date}</td>
+            <td>${a.time}</td>
+            <td><span class="badge ${statusBadge(a.status)}">${a.status}</span></td>
+          </tr>`).join('');
+      }
+    }
+
+    if (chartRes && chartRes.ok) {
+      const data = chartRes.data;
+      new Chart(document.getElementById('apptChart'), {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.date),
+          datasets: [{
+            label: 'Appointments',
+            data: data.map(d => d.count),
+            backgroundColor: 'rgba(26,115,232,0.7)',
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+    }
+  }
+
+  function statusBadge(s) {
+    return { scheduled: 'badge-primary', completed: 'badge-success', cancelled: 'badge-danger' }[s] || 'badge-secondary';
+  }
+</script>
+</body>
+</html>
