@@ -1,19 +1,19 @@
 class Solution {
     public List<List<Integer>> subsets(int[] nums) {
-        List<List<Integer>> arr = new ArrayList<>();
-        List<Integer> ans = new ArrayList<>();
-        rec(arr, ans, nums, 0);
-        return arr;
+        List<List<Integer>> li = new ArrayList<>();
+        List<Integer> li1 = new ArrayList<>();
+      
+        helper(li ,li1,  nums, 0);
+        return li;
     }
-    private void rec(List<List<Integer>> arr , List<Integer> ans, int[] nums, int i){
+    public void helper(List<List<Integer>> li ,List<Integer> li1 , int[] nums, int i){
         if(i == nums.length){
-            arr.add(new ArrayList<>(ans));
+            li.add(new ArrayList<>(li1));
             return;
         }
-        rec(arr, ans, nums, i + 1);
-        ans.add(nums[i]);
-        rec(arr, ans, nums, i + 1);
-        ans.remove(ans.size() - 1);
-
+        helper(li, li1, nums, i+1);
+        li1.add(nums[i]);
+        helper(li,li1,nums,i+1);
+        li1.remove(li1.size() -1);
     }
 }
