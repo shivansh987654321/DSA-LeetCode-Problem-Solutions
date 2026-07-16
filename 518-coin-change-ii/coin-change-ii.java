@@ -19,7 +19,7 @@ class Solution {
             return dp[i][amount];
         }
         if(amount < coins[i]){
-            return solve(amount, coins, i + 1,dp);
+            return dp[i][amount] = solve(amount, coins, i + 1,dp);
         }
         int take = solve(amount - coins[i] , coins, i,dp);
         int skip = solve(amount ,coins, i + 1,dp);
