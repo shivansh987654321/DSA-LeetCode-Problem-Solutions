@@ -21,7 +21,7 @@ class Solution {
             return  nums[ind] == sum1;
         }
         if(dp[ind][sum1] != -1){
-            if(dp[ind][sum1] == sum1){
+            if(dp[ind][sum1] == 1){
                 return true;
             }else{
                 return false;
